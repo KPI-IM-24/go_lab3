@@ -12,12 +12,16 @@ import (
 	"golang.org/x/exp/shiny/screen"
 )
 
+const (
+	imageSize = 800
+)
+
 func TestLoop_Post_Success(t *testing.T) {
 	screenMock := new(mockScreen)
 	textureMock := new(mockTexture)
 	receiverMock := new(mockReceiver)
 
-	texture := image.Pt(400, 400)
+	texture := image.Pt(imageSize, imageSize)
 	screenMock.On("NewTexture", texture).Return(textureMock, nil)
 	receiverMock.On("Update", textureMock).Return()
 
@@ -33,10 +37,10 @@ func TestLoop_Post_Success(t *testing.T) {
 	loop.Post(operation1)
 	time.Sleep(1 * time.Second)
 
-	assert.Empty(t, loop.mq.ops)
+	assert.Empty(t, loop.Mq.Ops)
 	operation1.AssertCalled(t, "Do", textureMock)
 	receiverMock.AssertCalled(t, "Update", textureMock)
-	screenMock.AssertCalled(t, "NewTexture", image.Pt(400, 400))
+	screenMock.AssertCalled(t, "NewTexture", image.Pt(imageSize, imageSize))
 }
 
 func TestLoop_Post_Multiple_Success(t *testing.T) {
@@ -44,7 +48,7 @@ func TestLoop_Post_Multiple_Success(t *testing.T) {
 	textureMock := new(mockTexture)
 	receiverMock := new(mockReceiver)
 
-	texture := image.Pt(400, 400)
+	texture := image.Pt(imageSize, imageSize)
 	screenMock.On("NewTexture", texture).Return(textureMock, nil)
 	receiverMock.On("Update", textureMock).Return()
 	loop := Loop{
@@ -59,16 +63,16 @@ func TestLoop_Post_Multiple_Success(t *testing.T) {
 	operation1.On("Do", textureMock).Return(true)
 	operation2.On("Do", textureMock).Return(true)
 
-	assert.Empty(t, loop.mq.ops)
+	assert.Empty(t, loop.Mq.Ops)
 	loop.Post(operation1)
 	loop.Post(operation2)
 	time.Sleep(1 * time.Second)
-	assert.Empty(t, loop.mq.ops)
+	assert.Empty(t, loop.Mq.Ops)
 
 	operation1.AssertCalled(t, "Do", textureMock)
 	operation2.AssertCalled(t, "Do", textureMock)
 	receiverMock.AssertCalled(t, "Update", textureMock)
-	screenMock.AssertCalled(t, "NewTexture", image.Pt(400, 400))
+	screenMock.AssertCalled(t, "NewTexture", image.Pt(imageSize, imageSize))
 }
 
 func TestLoop_Post_Failure(t *testing.T) {
@@ -76,7 +80,7 @@ func TestLoop_Post_Failure(t *testing.T) {
 	textureMock := new(mockTexture)
 	receiverMock := new(mockReceiver)
 
-	texture := image.Pt(400, 400)
+	texture := image.Pt(imageSize, imageSize)
 	screenMock.On("NewTexture", texture).Return(textureMock, nil)
 	receiverMock.On("Update", textureMock).Return()
 	loop := Loop{
@@ -88,14 +92,14 @@ func TestLoop_Post_Failure(t *testing.T) {
 	textureMock.On("Bounds").Return(image.Rectangle{})
 	operation1.On("Do", textureMock).Return(false)
 
-	assert.Empty(t, loop.mq.ops)
+	assert.Empty(t, loop.Mq.Ops)
 	loop.Post(operation1)
 	time.Sleep(1 * time.Second)
-	assert.Empty(t, loop.mq.ops)
+	assert.Empty(t, loop.Mq.Ops)
 
 	operation1.AssertCalled(t, "Do", textureMock)
 	receiverMock.AssertNotCalled(t, "Update", textureMock)
-	screenMock.AssertCalled(t, "NewTexture", image.Pt(400, 400))
+	screenMock.AssertCalled(t, "NewTexture", image.Pt(imageSize, imageSize))
 }
 
 type mockScreen struct {
