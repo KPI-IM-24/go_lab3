@@ -121,8 +121,13 @@ func (pw *Visualizer) handleEvent(e any, t screen.Texture) {
 		log.Printf("ERROR: %s", e)
 
 	case mouse.Event:
-		if t == nil {
-			// TODO: Реалізувати реакцію на натискання кнопки миші.
+		if t == nil && e.Direction == mouse.DirPress && e.Button == mouse.ButtonRight {
+			pw.center = image.Point{
+				X: int(e.X),
+				Y: int(e.Y),
+			}
+
+			pw.w.Send(paint.Event{})
 		}
 
 	case paint.Event:
