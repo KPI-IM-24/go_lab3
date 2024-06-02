@@ -2,6 +2,8 @@ package painter
 
 import (
 	"image"
+	"log"
+	"sync"
 
 	"golang.org/x/exp/shiny/screen"
 )
@@ -28,8 +30,15 @@ var size = image.Pt(400, 400)
 
 // Start запускає цикл подій. Цей метод потрібно запустити до того, як викликати на ньому будь-які інші методи.
 func (l *Loop) Start(s screen.Screen) {
-	l.next, _ = s.NewTexture(size)
-	l.prev, _ = s.NewTexture(size)
+	var err error
+	l.next, err = s.NewTexture(size)
+	if err != nil {
+		log.Fatalf("failed to create texture: %v", err)
+	}
+	l.prev, err = s.NewTexture(size)
+	if err != nil {
+		log.Fatalf("failed to create texture: %v", err)
+	}
 
 	l.stop = make(chan struct{})
 	go func() {
@@ -57,15 +66,38 @@ func (l *Loop) StopAndWait() {
 	<-l.stop
 }
 
-// TODO: Реалізувати чергу подій.
-type messageQueue struct{}
+type messageQueue struct {
+	ops  []Operation
+	mu   sync.Mutex
+	cond *sync.Cond
+}
 
-func (mq *messageQueue) push(op Operation) {}
+func (mq *messageQueue) push(op Operation) {
+	mq.mu.Lock()
+	defer mq.mu.Unlock()
+	mq.ops = append(mq.ops, op)
+	if mq.cond != nil {
+		mq.cond.Signal()
+	}
+}
 
 func (mq *messageQueue) pull() Operation {
-	return nil
+	mq.mu.Lock()
+	defer mq.mu.Unlock()
+	for len(mq.ops) == 0 {
+		if mq.cond == nil {
+			mq.cond = sync.NewCond(&mq.mu)
+		}
+		mq.cond.Wait()
+	}
+	op := mq.ops[0]
+	mq.ops[0] = nil
+	mq.ops = mq.ops[1:]
+	return op
 }
 
 func (mq *messageQueue) empty() bool {
-	return false
+	mq.mu.Lock()
+	defer mq.mu.Unlock()
+	return len(mq.ops) == 0
 }
